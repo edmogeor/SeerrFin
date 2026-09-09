@@ -776,6 +776,14 @@
     background: var(--bst-bg-secondary-hover);
 }
 
+.bst-season-option--unavailable {
+    cursor: default;
+}
+
+.bst-season-option--unavailable:hover {
+    background: var(--bst-bg-secondary);
+}
+
 .bst-season-select-all {
     margin-bottom: 0.25rem;
     font-weight: 600;
@@ -787,6 +795,11 @@
     flex-shrink: 0;
     accent-color: var(--bst-accent);
     cursor: pointer;
+}
+
+.bst-season-checkbox:disabled {
+    opacity: 0.65;
+    cursor: default;
 }
 
 .bst-season-label {
@@ -803,6 +816,17 @@
     font-size: 0.75rem;
     font-weight: 400;
     color: var(--bst-type-secondary);
+}
+
+.bst-season-status {
+    flex-shrink: 0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 9999px;
+    background: var(--bst-pill-bg);
+    color: var(--bst-type-secondary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.2;
 }
 
 .bst-modal-loading {

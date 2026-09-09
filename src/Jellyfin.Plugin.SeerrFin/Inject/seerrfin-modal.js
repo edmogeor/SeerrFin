@@ -611,6 +611,29 @@ window.seerrFinLog = window.seerrFinLog || {
             });
     }
 
+    function getSeasonRequestState(details, seasonNumber, is4k) {
+        const mediaSeasons = details && details.mediaInfo && Array.isArray(details.mediaInfo.seasons) ? details.mediaInfo.seasons : [];
+        const mediaSeason = mediaSeasons.find(function (season) {
+            return season.seasonNumber === seasonNumber;
+        });
+
+        if (!mediaSeason) {
+            return null;
+        }
+
+        const rawStatus = is4k ? (mediaSeason.status4k != null ? mediaSeason.status4k : mediaSeason.status4K) : mediaSeason.status;
+        const status = normalizeMediaStatus(rawStatus);
+        const labels = {
+            2: 'Pending',
+            3: 'Requested',
+            4: 'Partially available',
+            5: 'Available',
+            6: 'Blocklisted'
+        };
+
+        return labels[status] ? { status: status, label: labels[status] } : null;
+    }
+
     function notifyUser(message) {
         const text = String(message || 'Request failed');
 
@@ -757,47 +780,59 @@ window.seerrFinLog = window.seerrFinLog || {
             </div>`;
     }
 
-    function renderSeasonList(seasons) {
+    function renderSeasonList(seasons, details, is4k) {
+        const hasRequestableSeasons = seasons.some(function (season) {
+            return !getSeasonRequestState(details, season.seasonNumber, is4k);
+        });
         const rowsHtml = seasons.map(function (season) {
             const seasonNumber = season.seasonNumber;
+            const requestState = getSeasonRequestState(details, seasonNumber, is4k);
             const displayName = season.name && season.name !== `Season ${seasonNumber}`
                 ? escapeHtml(season.name)
                 : `Season ${seasonNumber}`;
             const episodesHtml = season.episodeCount
                 ? `<span class="bst-season-episodes"> (${season.episodeCount}${season.episodeCount === 1 ? ' episode' : ' episodes'})</span>`
                 : '';
+            const statusHtml = requestState
+                ? `<span class="bst-season-status">${escapeHtml(requestState.label)}</span>`
+                : '';
             return `
-                <label class="bst-season-option">
-                    <input type="checkbox" class="bst-season-checkbox bst-season-row-input" value="${seasonNumber}" />
+                <label class="bst-season-option${requestState ? ' bst-season-option--unavailable' : ''}">
+                    <input type="checkbox" class="bst-season-checkbox bst-season-row-input" value="${seasonNumber}"${requestState ? ' checked disabled' : ''} />
                     <span class="bst-season-label">${displayName}${episodesHtml}</span>
+                    ${statusHtml}
                 </label>`;
         }).join('');
 
         return `
-            <label class="bst-season-option bst-season-select-all">
-                <input type="checkbox" class="bst-season-checkbox" data-select-all-seasons />
+            <label class="bst-season-option bst-season-select-all${hasRequestableSeasons ? '' : ' bst-season-option--unavailable'}">
+                <input type="checkbox" class="bst-season-checkbox" data-select-all-seasons${hasRequestableSeasons ? '' : ' disabled'} />
                 <span class="bst-season-label">Select all</span>
             </label>
             ${rowsHtml}`;
     }
 
-    function bindSeasonList(root, seasons, ctx) {
+    function bindSeasonList(root, seasons, details, is4k, ctx) {
         const list = root.querySelector('.bst-quality-list');
         const continueBtn = root.querySelector('.bst-quality-continue');
         const selectedSeasons = ctx.selectedSeasons;
+        const requestableSeasons = seasons.filter(function (season) {
+            return !getSeasonRequestState(details, season.seasonNumber, is4k);
+        });
 
         function syncSelectAll() {
-            const seasonNumbers = seasons.map(function (s) { return s.seasonNumber; });
+            const seasonNumbers = requestableSeasons.map(function (s) { return s.seasonNumber; });
             const selectAllInput = list.querySelector('[data-select-all-seasons]');
             if (!selectAllInput) {
                 return;
             }
-            selectAllInput.checked = seasonNumbers.every(function (num) {
+            selectAllInput.disabled = seasonNumbers.length === 0;
+            selectAllInput.checked = seasonNumbers.length > 0 && seasonNumbers.every(function (num) {
                 return selectedSeasons.indexOf(num) !== -1;
             });
             selectAllInput.indeterminate = selectedSeasons.length > 0 && !selectAllInput.checked;
             const requireExplicit = getRequestModalAdvanced().requireExplicitSeasonSelection === true;
-            continueBtn.disabled = requireExplicit && selectedSeasons.length === 0;
+            continueBtn.disabled = seasonNumbers.length === 0 || (requireExplicit && selectedSeasons.length === 0);
         }
 
         list.addEventListener('change', function (event) {
@@ -805,13 +840,13 @@ window.seerrFinLog = window.seerrFinLog || {
             if (selectAllInput) {
                 if (selectAllInput.checked) {
                     ctx.selectedSeasons.length = 0;
-                    seasons.forEach(function (s) {
+                    requestableSeasons.forEach(function (s) {
                         ctx.selectedSeasons.push(s.seasonNumber);
                     });
                 } else {
                     ctx.selectedSeasons.length = 0;
                 }
-                list.querySelectorAll('.bst-season-row-input').forEach(function (input) {
+                list.querySelectorAll('.bst-season-row-input:not(:disabled)').forEach(function (input) {
                     input.checked = ctx.selectedSeasons.indexOf(parseInt(input.value, 10)) !== -1;
                 });
                 syncSelectAll();
@@ -819,7 +854,7 @@ window.seerrFinLog = window.seerrFinLog || {
             }
 
             const rowInput = event.target.closest('.bst-season-row-input');
-            if (!rowInput) {
+            if (!rowInput || rowInput.disabled) {
                 return;
             }
 
@@ -869,8 +904,8 @@ window.seerrFinLog = window.seerrFinLog || {
                 return;
             }
 
-            list.innerHTML = renderSeasonList(seasons);
-            bindSeasonList(activeSeasonRoot, seasons, ctx);
+            list.innerHTML = renderSeasonList(seasons, details, is4k);
+            bindSeasonList(activeSeasonRoot, seasons, details, is4k, ctx);
         }).catch(function (err) {
             log.error('seasons load failed', err);
             list.innerHTML = `<div class="bst-quality-empty">Failed to load seasons.</div>`;
