@@ -1188,6 +1188,15 @@
                                 <label class="bst-toggle"><input id="advHideAdultContent" type="checkbox" checked /><span class="bst-toggle-slider"></span></label>
                             </div>
                         </div>
+                        <div class="bst-toggle-row">
+                            <div class="bst-toggle-copy">
+                                <label class="bst-toggle-label" for="advHideBlocklistedMedia">Hide blocklisted content</label>
+                                <div class="bst-field-desc">Hide movies/shows blocklisted in Seerr from discovery rows and search.</div>
+                            </div>
+                            <div class="bst-toggle-actions">
+                                <label class="bst-toggle"><input id="advHideBlocklistedMedia" type="checkbox" checked /><span class="bst-toggle-slider"></span></label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2318,6 +2327,7 @@
                         HideRequestedMedia: false,
                         HideAvailableInLibrary: false,
                         HideAdultContent: true,
+                        HideBlocklistedMedia: true,
                         UseSeerrMappingForAnime: true,
                         AnimeDiscoverPath: '/api/v1/discover/tv?genre=16&keywords=210024',
                         CarouselMaxJellyseerrPages: 5,
@@ -2420,6 +2430,7 @@
                 document.querySelector('#advHideRequestedMedia').checked = d.HideRequestedMedia === true;
                 document.querySelector('#advHideAvailableInLibrary').checked = d.HideAvailableInLibrary === true;
                 document.querySelector('#advHideAdultContent').checked = d.HideAdultContent !== false;
+                document.querySelector('#advHideBlocklistedMedia').checked = d.HideBlocklistedMedia !== false;
                 document.querySelector('#advUseSeerrMappingForAnime').checked = d.UseSeerrMappingForAnime !== false;
                 document.querySelector('#advAnimeDiscoverPath').value = d.AnimeDiscoverPath || '';
                 document.querySelector('#advCarouselMaxPages').value = d.CarouselMaxJellyseerrPages || 5;
@@ -2492,6 +2503,7 @@
                         HideRequestedMedia: document.querySelector('#advHideRequestedMedia').checked,
                         HideAvailableInLibrary: document.querySelector('#advHideAvailableInLibrary').checked,
                         HideAdultContent: document.querySelector('#advHideAdultContent').checked,
+                        HideBlocklistedMedia: document.querySelector('#advHideBlocklistedMedia').checked,
                         UseSeerrMappingForAnime: document.querySelector('#advUseSeerrMappingForAnime').checked,
                         AnimeDiscoverPath: document.querySelector('#advAnimeDiscoverPath').value.trim(),
                         CarouselMaxJellyseerrPages: parseInt(document.querySelector('#advCarouselMaxPages').value, 10) || 5,

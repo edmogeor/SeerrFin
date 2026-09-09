@@ -13,6 +13,8 @@ namespace Jellyfin.Plugin.SeerrFin.Services;
 
 public class JellyseerrDiscoveryService
 {
+    // For future reference: 1 UNKNOWN, 2 PENDING, 3 PROCESSING, 4 PARTIALLY_AVAILABLE, 5 AVAILABLE, 6 BLOCKLISTED, 7 DELETED.
+
     private readonly ImageCacheService _imageCacheService;
     private readonly ILogger<JellyseerrDiscoveryService> _logger;
 
@@ -536,6 +538,12 @@ public class JellyseerrDiscoveryService
             return null;
         }
 
+        // Seerr returns blocklisted titles from discovery/search and drops them client side and equesting one always fails, so filter them out here
+        if (discovery.HideBlocklistedMedia && GetMediaStatus(item) == 6) // Blocklisted
+        {
+            return null;
+        }
+
         string? language = item.Value<string>("originalLanguage");
         if (filterOptions.ApplyLanguageFilter &&
             !string.IsNullOrEmpty(config.JellyseerrPreferredLanguages) &&
@@ -622,11 +630,14 @@ public class JellyseerrDiscoveryService
             ?.Value<int>("id");
     }
 
-    private static bool IsAvailableInLibrary(JObject item)
+    private static int? GetMediaStatus(JObject item)
     {
-        string? status = item.Value<JObject>("mediaInfo")?.Value<string>("status");
-        return string.Equals(status, "AVAILABLE", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "PARTIALLY_AVAILABLE", StringComparison.OrdinalIgnoreCase);
+        JToken? status = item.Value<JObject>("mediaInfo")?["status"];
+        return status?.Type == JTokenType.Integer ? status.Value<int>() : null;
     }
+
+    private static bool IsAvailableInLibrary(JObject item) =>
+        GetMediaStatus(item) is 4 or 5; // Partially available / Available
 
     private static bool ShouldApplyReleaseTypeFilter(string? mediaTypeFilter, string jellyseerrPath, PluginConfiguration config) =>
         string.Equals(mediaTypeFilter, "movie", StringComparison.OrdinalIgnoreCase) && GetReleaseTypes(config).Count > 0 && !jellyseerrPath.Contains("/upcoming", StringComparison.OrdinalIgnoreCase);

@@ -331,9 +331,9 @@ window.seerrFinLog = window.seerrFinLog || {
             PROCESSING: 3,
             PARTIALLY_AVAILABLE: 4,
             AVAILABLE: 5,
-            DELETED: 6,
-            BLACKLISTED: 7,
-            BLOCKED: 7
+            BLOCKLISTED: 6,
+            BLACKLISTED: 6,
+            DELETED: 7
         };
         if (key in map) {
             return map[key];
@@ -355,7 +355,8 @@ window.seerrFinLog = window.seerrFinLog || {
             return { requested: true, label: 'Already requested' };
         }
 
-        if (status == null || status <= 1 || status === 6) {
+        // Deleted media can be requested again
+        if (status == null || status <= 1 || status === 7) {
             return { requested: false, label: defaultLabel };
         }
 
@@ -368,7 +369,7 @@ window.seerrFinLog = window.seerrFinLog || {
             2: 'Pending',
             3: 'Processing',
             5: 'Available',
-            7: 'Blocklisted'
+            6: 'Blocklisted'
         };
         return { requested: true, label: labels[status] || 'Already requested' };
     }

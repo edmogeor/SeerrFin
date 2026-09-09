@@ -469,8 +469,8 @@ public class JellyseerrRequestsService
 
         return mediaStatus switch
         {
-            7 => "Blocklisted",
-            6 => "Deleted",
+            7 => "Deleted",
+            6 => "Blocklisted",
             5 => "Available",
             4 => "Partially Available",
             3 => "Processing",

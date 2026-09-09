@@ -10,6 +10,8 @@ public class AdvancedDiscoverySettings
 
     public bool HideAdultContent { get; set; } = true;
 
+    public bool HideBlocklistedMedia { get; set; } = true;
+
     public bool UseSeerrMappingForAnime { get; set; } = true;
 
     public string AnimeDiscoverPath { get; set; } = "/api/v1/discover/tv?genre=16&keywords=210024";
