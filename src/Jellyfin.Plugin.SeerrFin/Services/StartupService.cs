@@ -9,6 +9,7 @@ namespace Jellyfin.Plugin.SeerrFin.Services;
 public class StartupService : IScheduledTask
 {
     private static readonly Guid IndexHtmlTransformationId = Guid.Parse("b7c1e2f3-4a5b-6c7d-8e9f-0a1b2c3d4e5f");
+    private static readonly Guid WebConfigTransformationId = Guid.Parse("64d34a37-eec7-4c86-95b4-21ad6c6be292");
 
     private readonly ILogger<SeerrFinPlugin> _logger;
 
@@ -47,18 +48,29 @@ public class StartupService : IScheduledTask
             return Task.CompletedTask;
         }
 
-        var payload = new JObject
+        var registerTransformation = pluginInterfaceType.GetMethod("RegisterTransformation");
+        if (registerTransformation == null)
         {
-            ["id"] = IndexHtmlTransformationId,
-            ["fileNamePattern"] = "index.html",
-            // Callback invoked by File Transformation when index.html served
-            ["callbackAssembly"] = GetType().Assembly.FullName,
-            ["callbackClass"] = typeof(TransformationPatches).FullName,
-            ["callbackMethod"] = nameof(TransformationPatches.IndexHtml)
-        };
+            _logger.LogWarning("SF • File Transformation RegisterTransformation method not found");
+            return Task.CompletedTask;
+        }
 
-        pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new object?[] { payload });
-        _logger.LogInformation("SF • registered index.html transformation");
+        void Register(Guid id, string fileName, string callback)
+        {
+            var payload = new JObject
+            {
+                ["id"] = id,
+                ["fileNamePattern"] = fileName,
+                ["callbackAssembly"] = GetType().Assembly.FullName,
+                ["callbackClass"] = typeof(TransformationPatches).FullName,
+                ["callbackMethod"] = callback
+            };
+            registerTransformation.Invoke(null, new object?[] { payload });
+        }
+
+        Register(IndexHtmlTransformationId, "index.html", nameof(TransformationPatches.IndexHtml));
+        Register(WebConfigTransformationId, "config.json", nameof(TransformationPatches.WebConfig));
+        _logger.LogInformation("SF • registered index.html and config.json transformations");
         return Task.CompletedTask;
     }
 

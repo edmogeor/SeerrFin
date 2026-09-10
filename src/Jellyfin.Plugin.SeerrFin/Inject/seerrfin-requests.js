@@ -252,7 +252,7 @@ window.seerrFinLog = window.seerrFinLog || {
 
         return ApiClient.getUrl('SeerrFin/proxy/avatar', {
             path: avatarPath,
-            api_key: ApiClient.accessToken()
+            ApiKey: ApiClient.accessToken()
         });
     }
 
@@ -267,14 +267,7 @@ window.seerrFinLog = window.seerrFinLog || {
         }
 
         function openDetails(id, item) {
-            if (window.AppRouter && typeof AppRouter.showItem === 'function') {
-                AppRouter.showItem(item || { Id: id, ServerId: ApiClient.serverId() });
-                return;
-            }
-
-            if (window.Dashboard && typeof Dashboard.navigate === 'function') {
-                Dashboard.navigate('details?id=' + encodeURIComponent(id));
-            }
+            window.Emby.Page.showItem(item || { Id: id, ServerId: ApiClient.serverId() });
         }
 
         ApiClient.getItem(ApiClient.getCurrentUserId(), itemId)
@@ -676,7 +669,7 @@ window.seerrFinLog = window.seerrFinLog || {
         }
 
         return fetch(ApiClient.getUrl('SeerrFin/requests', params), {
-            headers: { 'X-MediaBrowser-Token': ApiClient.accessToken() }
+            headers: { Authorization: 'MediaBrowser Token="' + ApiClient.accessToken() + '"' }
         }).then(function (response) {
             if (!response.ok) {
                 throw new Error('HTTP ' + response.status);

@@ -72,6 +72,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 this.bindRequestHandler();
                 this.bindCardClickHandler();
                 this.bindViewMoreHandler();
+                this.bindModernNavigation();
                 this.loadDisplaySettings();
                 this.setupSearchIntegration();
             }
@@ -190,6 +191,17 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             });
         },
 
+        findActiveHomePage: function () {
+            // Jellyfin 12 legacy view caches pages by route, so multiple indexPage IDs can stay mounted. The newest page without .hide uses the header
+            const pages = document.querySelectorAll('.page:not(.hide)');
+            for (let i = pages.length - 1; i >= 0; i--) {
+                if (!pages[i].closest('.hide')) {
+                    return pages[i].id === 'indexPage' ? pages[i] : null;
+                }
+            }
+            return null;
+        },
+
         isHomeTabContext: function () {
             const hash = window.location.hash || '';
             const onHomeHash = hash === '' ||
@@ -201,14 +213,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 return false;
             }
 
-            const page = document.getElementById('indexPage');
-            if (!page || page.classList.contains('hide')) {
-                return false;
-            }
-
-            // indexPage can stay cached while browsing libraries. require it to be the visible page.
-            const visiblePage = document.querySelector('.page:not(.hide)');
-            return !visiblePage || visiblePage.id === 'indexPage';
+            return !!this.findActiveHomePage();
         },
 
         cleanupSeerrFinHeaderButtons: function () {
@@ -367,7 +372,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 return;
             }
 
-            const page = document.getElementById('indexPage');
+            const page = this.findActiveHomePage();
             page.querySelectorAll('.tabContent[data-index]').forEach(function (panel) {
                 const panelIndex = parseInt(panel.getAttribute('data-index'), 10);
                 panel.classList.toggle('is-active', panelIndex === selectedIndex);
@@ -383,6 +388,24 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             log.info('native tab guard attached');
             const self = this;
 
+            tabs.addEventListener('click', function (event) {
+                if (!self.isHomeTabContext()) {
+                    return;
+                }
+                const route = new URLSearchParams(window.location.hash.split('?')[1] || '');
+                const button = event.target.closest && event.target.closest('.emby-tab-button');
+                if ((!route.has('seerrfinTab') && !route.has('tab')) || !button || button.classList.contains('hide')) {
+                    return;
+                }
+                const id = button.getAttribute('data-seerrfin-tab');
+                const index = parseInt(button.getAttribute('data-index'), 10);
+                if (isNaN(index)) {
+                    return;
+                }
+                // Legacy tab clicks do not update the route, so keep a home deep link in sync so a later header refresh cant restore the tab just left
+                window.location.hash = id ? '#/home?seerrfinTab=' + id : (index === 0 ? '#/home' : '#/home?tab=' + index);
+            }, true);
+
             tabs.addEventListener('beforetabchange', function (event) {
                 if (!self.isHomeTabContext()) {
                     return;
@@ -396,6 +419,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 // jellyfin activates panels by NodeList index.
                 // sync by data-index so SeerrFin panels stay in the right order.
                 self.syncTabPanelsActiveState(index);
+                requestAnimationFrame(function () { self.syncModernNavigation(); });
 
                 const selectedButton = tabs.querySelector('.emby-tab-button[data-index="' + index + '"]');
                 if (selectedButton && selectedButton.getAttribute('data-seerrfin-tab')) {
@@ -424,8 +448,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                     return;
                 }
 
-                const isPluginTab = !!selectedButton.getAttribute('data-seerrfin-tab') ||
-                    (selectedButton.id || '').indexOf('customTabButton_') === 0;
+                const isPluginTab = index > 1;
                 if (!isPluginTab) {
                     return;
                 }
@@ -461,6 +484,11 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             }));
 
             page.querySelectorAll('.tabContent').forEach(function (panel) {
+                const reservedIndex = panel.getAttribute('data-seerrfin-reserved-index');
+                if (reservedIndex !== null) {
+                    if (!slots.some(function (slot) { return slot.key === 'reserved:' + reservedIndex; })) panel.remove();
+                    return;
+                }
                 const id = panel.getAttribute('data-seerrfin-tab');
                 if (id) {
                     if (!activeIds.has(id)) {
@@ -494,8 +522,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 return;
             }
             const titleEl = button.querySelector('.emby-button-foreground');
-            if (titleEl) {
-                titleEl.textContent = this.resolveTabTitle(id, title);
+            const nextTitle = this.resolveTabTitle(id, title);
+            if (titleEl && titleEl.textContent !== nextTitle) {
+                titleEl.textContent = nextTitle;
             }
         },
 
@@ -587,8 +616,45 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             }).join('|');
         },
 
+        includeExternalTabSlots: function (page, tabsSlider, slots) {
+            // Only count mounted Custom Tabs when reserving jellyfin enhanced's numeric indices. A late or disabled Custom Tab cant shift the external tab's actual slot
+            const result = slots.filter(function (slot) {
+                return slot.type !== 'customtabs' || (tabsSlider.querySelector('#customTabButton_' + slot.index) && page.querySelector('[id="customTab_' + slot.index + '"]'));
+            });
+            const external = [];
+            tabsSlider.querySelectorAll('.emby-tab-button').forEach(function (button) {
+                const index = parseInt(button.getAttribute('data-index'), 10);
+                if (index < 2 || isNaN(index) || button.hasAttribute('data-seerrfin-tab') || button.hasAttribute('data-seerrfin-reserved-index') || /^customTabButton_/.test(button.id)) {
+                    return;
+                }
+
+                // Enhanced caches tab indices for its header links, so keep these slots in place, including when its cached index collides with a newly built bar
+                const enhancedId = /^je-native-tab-btn-(.+)$/.exec(button.id);
+                const panel = enhancedId
+                    ? page.querySelector('[id="je-native-tab-panel-' + enhancedId[1] + '"]')
+                    : Array.from(page.querySelectorAll('.tabContent')).find(function (candidate) {
+                        return candidate.getAttribute('data-index') === String(index) && !candidate.hasAttribute('data-seerrfin-tab') && !/^(homeTab|favoritesTab|customTab_)/.test(candidate.id);
+                    });
+                if (panel) {
+                    external.push({ key: 'external:' + (button.id || index), type: 'external', index: index, button: button, panel: panel });
+                }
+            });
+            external.sort(function (a, b) { return a.index - b.index; });
+            external.forEach(function (slot) {
+                // Disabling one of our tabs should not renumber an Enhanced tab whose cached deep link is later in the strip. Hidden slots retain that index
+                while (result.length < slot.index) {
+                    result.push({ key: 'reserved:' + result.length, type: 'reserved', index: result.length });
+                }
+                result.splice(slot.index, 0, slot);
+            });
+            return result;
+        },
+
         readCurrentBarSignature: function (tabsSlider) {
             return Array.from(tabsSlider.querySelectorAll('.emby-tab-button')).map(function (btn) {
+                if (btn.hasAttribute('data-seerrfin-reserved-index')) {
+                    return 'reserved:' + btn.getAttribute('data-seerrfin-reserved-index');
+                }
                 const sf = btn.getAttribute('data-seerrfin-tab');
                 if (sf) {
                     return 'sf:' + sf;
@@ -604,19 +670,19 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 if (index === '1') {
                     return 'jf:favorites';
                 }
-                return 'other:' + index;
+                return 'external:' + (btn.id || index);
             }).join('|');
         },
 
         waitForCustomTabs: function (customTabs, attemptsLeft) {
             const self = this;
-            const page = document.getElementById('indexPage');
+            const page = self.findActiveHomePage();
             const missing = (customTabs || []).some(function (tab) {
                 if (tab.legacySeerrFin) {
                     return false;
                 }
-                const button = document.getElementById('customTabButton_' + tab.index);
-                const panel = page && page.querySelector('#customTab_' + tab.index);
+                const button = document.querySelector('.headerTabs #customTabButton_' + tab.index);
+                const panel = page && page.querySelector('[id="customTab_' + tab.index + '"]');
                 return !button || !panel;
             });
             if (!missing || attemptsLeft <= 0) {
@@ -656,7 +722,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         removeUnplannedTabButtons: function (tabsSlider, plannedButtons) {
             const keep = new Set(plannedButtons);
             tabsSlider.querySelectorAll('.emby-tab-button').forEach(function (button) {
-                if (!keep.has(button)) {
+                if (!keep.has(button) && (button.hasAttribute('data-seerrfin-tab') || button.hasAttribute('data-seerrfin-reserved-index') || /^customTabButton_/.test(button.id))) {
                     button.remove();
                 }
             });
@@ -668,8 +734,8 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 return false;
             }
 
-            const homeTab = page.querySelector('#homeTab');
-            const favoritesTab = page.querySelector('#favoritesTab');
+            const homeTab = page.querySelector('[id="homeTab"]');
+            const favoritesTab = page.querySelector('[id="favoritesTab"]');
             if (!homeTab || !favoritesTab) {
                 log.warn('home tab panels missing; skipping bar apply');
                 return false;
@@ -689,14 +755,28 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                         continue;
                     }
                 } else if (slot.type === 'customtabs') {
-                    button = document.getElementById('customTabButton_' + slot.index);
-                    if (button && !button.closest('.headerTabs')) {
-                        button = null;
-                    }
+                    button = tabsSlider.querySelector('#customTabButton_' + slot.index);
                     // Never fabricate custom tab panels. empty placeholders remove real custom tab html on rebuild.
-                    panel = page.querySelector('#customTab_' + slot.index);
+                    panel = page.querySelector('[id="customTab_' + slot.index + '"]');
                     if (!button || !panel) {
                         continue;
+                    }
+                } else if (slot.type === 'external') {
+                    button = slot.button;
+                    panel = slot.panel;
+                } else if (slot.type === 'reserved') {
+                    button = tabsSlider.querySelector('[data-seerrfin-reserved-index="' + slot.index + '"]');
+                    panel = page.querySelector('.tabContent[data-seerrfin-reserved-index="' + slot.index + '"]');
+                    if (!button) {
+                        button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'emby-tab-button hide';
+                        button.setAttribute('data-seerrfin-reserved-index', String(slot.index));
+                    }
+                    if (!panel) {
+                        panel = document.createElement('div');
+                        panel.className = 'tabContent pageTabContent hide';
+                        panel.setAttribute('data-seerrfin-reserved-index', String(slot.index));
                     }
                 } else if (slot.type === 'seerrfin') {
                     button = tabsSlider.querySelector('[data-seerrfin-tab="' + slot.id + '"]');
@@ -748,8 +828,71 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             return true;
         },
 
+        getModernNavId: function (link) {
+            if (!link || !link.closest('header.MuiAppBar-root, .MuiDrawer-paper, #user-view-overflow-menu, .customMenuOptions')) return null;
+            const match = /^#\/home\?seerrfinTab=(movies|tv|requests|letterboxd)$/.exec(link.getAttribute('href') || '');
+            return match ? match[1] : null;
+        },
+
+        bindModernNavigation: function () {
+            const self = this;
+            // menuLinks are native anchors with target=_blank, including freshly mounted More/drawer entries. Handle only our ordinary clicks and let Jellyfin's own bubbling handlers close the native menu/drawer.
+            document.addEventListener('click', function (event) {
+                if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                const link = event.target.closest && event.target.closest('a[href]');
+                if (!self.getModernNavId(link)) return;
+                event.preventDefault();
+                window.location.hash = link.getAttribute('href');
+                self.ensureNativeTabs().then(function () { self.scheduleRender(); });
+            }, true);
+        },
+
+        syncModernNavigation: function () {
+            const self = this;
+            const selected = self.isHomeTabContext() && document.querySelector('.headerTabs .emby-tab-button-active');
+            const activeId = selected && selected.getAttribute('data-seerrfin-tab');
+            document.querySelectorAll('header.MuiAppBar-root a[href], .MuiDrawer-paper a[href], #user-view-overflow-menu a[href], .customMenuOptions a[href]').forEach(function (link) {
+                const id = self.getModernNavId(link);
+                if (!id) {
+                    return;
+                }
+                link.dataset.seerrfinMenuNav = id;
+                const active = activeId === id;
+                if (active && link.getAttribute('aria-current') !== 'page') {
+                    link.setAttribute('aria-current', 'page');
+                } else if (!active && link.hasAttribute('aria-current')) {
+                    link.removeAttribute('aria-current');
+                }
+            });
+        },
+
+        restoreHomeTabSelection: function (page, tabs) {
+            if (typeof tabs.selectedIndex !== 'function') return;
+            const route = new URLSearchParams(window.location.hash.split('?')[1] || '');
+            const tabId = route.get('seerrfinTab');
+            const namedButton = tabId && Array.from(tabs.querySelectorAll('[data-seerrfin-tab]')).find(function (button) {
+                return button.dataset.seerrfinTab === tabId && !button.classList.contains('hide');
+            });
+            const namedIndex = namedButton ? parseInt(namedButton.dataset.index, 10) : 0;
+            if (page.dataset.seerrfinTabRoute === window.location.hash && page._seerrfinTabsElement === tabs &&
+                page._seerrfinTabRouteMatched && (!tabId || tabs.selectedIndex() === namedIndex)) return;
+            page.dataset.seerrfinTabRoute = window.location.hash;
+            page._seerrfinTabsElement = tabs;
+            const match = /[?&]tab=(\d+)/.exec(window.location.hash);
+            const selected = tabId ? namedIndex : (match ? parseInt(match[1], 10) : 0);
+            const button = tabs.querySelector('.emby-tab-button:not(.hide)[data-index="' + selected + '"]');
+            page._seerrfinTabRouteMatched = !!button;
+            // Restore deep links after the React home/header have mounted and plugin panels exist
+            if (button) {
+                tabs.selectedIndex(selected);
+            } else if (tabs.selectedIndex() !== 0) {
+                tabs.selectedIndex(0);
+            }
+        },
+
         ensureNativeTabs: function () {
             const self = this;
+            self.syncModernNavigation();
             if (self._tabsEnsuring) {
                 return self._tabsEnsuring;
             }
@@ -771,7 +914,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                         return;
                     }
 
-                    const page = document.getElementById('indexPage');
+                    const page = self.findActiveHomePage();
                     const tabsSlider = document.querySelector('.headerTabs .emby-tabs-slider');
                     const tabsEl = document.querySelector('.headerTabs [is="emby-tabs"]');
                     if (!page || !tabsSlider || !tabsEl) {
@@ -780,7 +923,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
                     self.attachPluginTabGuard(tabsEl);
 
-                    const slots = self.buildDesiredBarSlots(config);
+                    const slots = self.includeExternalTabSlots(page, tabsSlider, self.buildDesiredBarSlots(config));
                     const desiredSig = self.barPlacementSignature(slots);
                     const currentSig = self.readCurrentBarSignature(tabsSlider);
                     const panelsMatch = slots.every(function (slot) {
@@ -788,19 +931,27 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                             return !!page.querySelector('.tabContent[data-seerrfin-tab="' + slot.id + '"]');
                         }
                         if (slot.type === 'customtabs') {
-                            return !!page.querySelector('#customTab_' + slot.index);
+                            return !!page.querySelector('[id="customTab_' + slot.index + '"]');
+                        }
+                        if (slot.type === 'reserved') {
+                            return !!page.querySelector('.tabContent[data-seerrfin-reserved-index="' + slot.index + '"]');
                         }
                         return true;
                     });
 
                     if (desiredSig === currentSig && panelsMatch) {
                         self.applyTabTitles(tabsSlider, slots);
+                        self.restoreHomeTabSelection(page, tabsEl);
+                        self.syncModernNavigation();
                         return;
                     }
 
                     if (!self.applyBarOrder(page, tabsSlider, slots)) {
                         return;
                     }
+
+                    self.restoreHomeTabSelection(page, tabsEl);
+                    self.syncModernNavigation();
 
                     log.info('native tab bar ready: ' + slots.map(function (s) { return s.key; }).join(', '));
 
@@ -836,27 +987,39 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 } else {
                     // left home for a library/folder view (never leave seerrfin buttons in the header)
                     self.cleanupSeerrFinHeaderButtons();
+                    self.syncModernNavigation();
                     self.scheduleRender();
                 }
             });
 
-            if (!self._ctButtonObserver && typeof MutationObserver !== 'undefined') {
-                self._ctButtonObserver = new MutationObserver(function () {
-                    if (self._ctObserveTimer) {
-                        clearTimeout(self._ctObserveTimer);
-                    }
+            const scheduleTabs = function () {
+                if (!self._ctObserveTimer) {
                     self._ctObserveTimer = setTimeout(function () {
-                        if (self.isHomeTabContext()) {
-                            self.ensureNativeTabs();
-                        } else {
-                            self.cleanupSeerrFinHeaderButtons();
-                        }
-                    }, 250);
-                });
-                const headerTabs = document.querySelector('.headerTabs');
-                if (headerTabs) {
-                    self._ctButtonObserver.observe(headerTabs, { childList: true, subtree: true });
+                        self._ctObserveTimer = null;
+                        self.ensureNativeTabs();
+                    }, 50);
                 }
+            };
+            window.addEventListener('hashchange', scheduleTabs);
+
+            if (!self._ctButtonObserver && typeof MutationObserver !== 'undefined') {
+                self._ctButtonObserver = new MutationObserver(function (records) {
+                    const selector = '.skinHeader, .headerTabs, #indexPage, header.MuiAppBar-root, .MuiDrawer-paper, #user-view-overflow-menu, .customMenuOptions';
+                    const relevant = records.some(function (record) {
+                        const target = record.target;
+                        if (target.nodeType === 1 && target.closest(selector)) {
+                            if (!target.closest('#indexPage') || target.id === 'indexPage') { // Card and image rendering within the page doesnt affect the tab bar
+                                return true;
+                            }
+                        }
+                        return Array.from(record.addedNodes).concat(Array.from(record.removedNodes)).some(function (node) {
+                            return node.nodeType === 1 && (node.matches(selector) || node.querySelector(selector));
+                        });
+                    });
+                    if (relevant) scheduleTabs();
+                });
+                // Jellyfin 12 can mount or replace the React page/header after boot
+                self._ctButtonObserver.observe(document.body, { childList: true, subtree: true });
             }
         },
 
@@ -3237,9 +3400,6 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                         if (scroller.scroller && scroller.scroller.reload) {
                             scroller.scroller.reload();
                         }
-                        if (scroller.enableMouseWheelScroll) {
-                            scroller.enableMouseWheelScroll();
-                        }
                     });
 
                     container.querySelectorAll('.seerrfin-poster-section').forEach(function (section) {
@@ -3369,17 +3529,3 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         }
     });
 }
-
-// On config page, jf doesn't allow custom menu icons so this is a small patch for that
-(function () {
-    function patch() {
-        var icon = document.querySelector('a[href*="name=SeerrFin"] .MuiListItemIcon-root');
-        if (!icon || icon.dataset.bstMenuIcon) return;
-
-        icon.dataset.bstMenuIcon = '1';
-        icon.innerHTML = `<span class="material-icons notranslate MuiIcon-root MuiIcon-fontSizeMedium" aria-hidden="true">preview</span>`;
-    }
-
-    new MutationObserver(patch).observe(document.body, { childList: true, subtree: true });
-    patch();
-})();

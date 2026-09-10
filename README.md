@@ -40,7 +40,7 @@ The best way to discover and request Movies and TV Shows by using Seerr directly
 ## Installation
 
 ### First make sure you have these prerequisites:
-- A running Jellyfin **10.11.x** and Seerr instance
+- A running Jellyfin **12.0** and Seerr instance
 - [File Transformation](https://www.iamparadox.dev/jellyfin/plugins/manifest.json) plugin
 
 ### Install from plugin catalog

@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  JELLYFIN_VERSION: "10.11.2"
-  TARGET_ABI: "10.11.0.0"
+  JELLYFIN_VERSION: "12.0.0"
+  TARGET_ABI: "12.0.0.0"
   REPO_OWNER: "varunaditya-plus"
   REPO_NAME: "SeerrFin"
   CSPROJ: "src/Jellyfin.Plugin.SeerrFin/Jellyfin.Plugin.SeerrFin.csproj"
@@ -92,7 +92,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
 
       - name: Build plugin
         run: |
@@ -115,7 +115,7 @@ jobs:
           CHANGELOG: ${{ needs.extract-version.outputs.changelog }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          OUT_DIR="${GITHUB_WORKSPACE}/src/Jellyfin.Plugin.SeerrFin/bin/Release/net9.0"
+          OUT_DIR="${GITHUB_WORKSPACE}/src/Jellyfin.Plugin.SeerrFin/bin/Release/net10.0"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.0000000Z")
           ZIP_NAME="${{ steps.jellyfin.outputs.zip_name }}"
           DIST_DIR="${GITHUB_WORKSPACE}/dist"

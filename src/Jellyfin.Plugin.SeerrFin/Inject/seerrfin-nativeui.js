@@ -196,7 +196,7 @@ window.seerrFinLog = window.seerrFinLog || {
             }
 
             if (logoUrl) {
-                imageStyle = ' style="display:flex;align-items:center;justify-content:center;background-color:var(--cardBackground,rgba(255,255,255,.03))"';
+                imageStyle = ' style="display:flex;align-items:center;justify-content:center;background-color:var(--jf-palette-background-paper,rgba(255,255,255,.03))"';
                 const inset = item.weirdSize ? '20% 12%' : '29% 15%';
                 mediaHtml = `<span role="img" aria-label="${safeName}" style="position:absolute;inset:${inset};background-image:url('${plugin.escapeHtml(logoUrl).replace(/'/g, "\\'")}');background-size:contain;background-position:center;background-repeat:no-repeat"></span>`;
             }

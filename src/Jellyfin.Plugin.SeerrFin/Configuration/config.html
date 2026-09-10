@@ -23,6 +23,17 @@
             color: #000;
         }
 
+        .bst-version-warning {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 0.5em;
+            padding: 0.75em 1em;
+            background: #c62828;
+            color: #fff;
+            text-align: center;
+            line-height: 1.4;
+        }
+
         #seerrFinConfigurationPage .content-primary {
             margin: 0 auto;
             padding-left: 5em !important;
@@ -756,6 +767,7 @@
                 <span>SeerrFin</span>
                 <a href="https://github.com/varunaditya-plus/SeerrFin" target="_blank" rel="noopener">Help</a>
             </div>
+            <div id="bstVersionWarning" class="bst-version-warning" role="alert" hidden>Please update to Jellyfin 12.0. SeerrFin is no longer supported on this version, stuff might break.</div>
 
             <nav class="bst-page-nav" aria-label="SeerrFin configuration sections">
                 <button type="button" class="bst-page-nav-btn is-active" data-bst-panel="overview">Overview</button>
@@ -2719,7 +2731,14 @@
                 });
             }
 
+            function checkJellyfinVersion() {
+                const warning = document.getElementById('bstVersionWarning');
+                const version = String(ApiClient.serverVersion() || '').match(/^(\d+)(?:\.|$)/);
+                warning.hidden = !version || parseInt(version[1], 10) >= 12;
+            }
+
             checkInstalledPlugins();
+            checkJellyfinVersion();
 
             Dashboard.showLoadingMsg();
             Promise.all([
@@ -2775,10 +2794,16 @@
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 Dashboard.showLoadingMsg();
+                let tabNavigationChanged = false;
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    const nextTabs = buildTabsPayload();
+                    const nextTabBarOrder = normalizeBarOrder(tabBarOrder, customTabsForeign);
+                    tabNavigationChanged =
+                        JSON.stringify(normalizeTabsFromConfig(config.Tabs || config.tabs)) !== JSON.stringify(nextTabs) ||
+                        JSON.stringify(normalizeBarOrder(config.TabBarOrder || config.tabBarOrder, customTabsForeign)) !== JSON.stringify(nextTabBarOrder);
                     config.DisplayCustomizationsJson = JSON.stringify(buildDisplayCustomizationsPayload());
-                    config.Tabs = buildTabsPayload();
-                    config.TabBarOrder = tabBarOrder.slice();
+                    config.Tabs = nextTabs;
+                    config.TabBarOrder = nextTabBarOrder;
                     config.JellyseerrUrl = document.querySelector('#jellyseerrUrl').value;
                     config.ExternalJellyseerrUrl = document.querySelector('#externalJellyseerrUrl').value;
                     config.JellyseerrApiKey = document.querySelector('#jellyseerrApiKey').value;
@@ -2809,6 +2834,11 @@
                 }).then(function (result) {
                     Dashboard.processPluginConfigurationUpdateResult(result);
                     Dashboard.hideLoadingMsg();
+                    if (tabNavigationChanged) {
+                        // Jellyfin reads native menuLinks once when the web client starts.
+                        window.location.reload();
+                        return;
+                    }
                     if (window.seerrFinPlugin) {
                         window.seerrFinPlugin.invalidateDisplaySettings();
                     }

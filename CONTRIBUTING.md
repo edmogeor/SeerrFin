@@ -19,7 +19,7 @@ For features: describe the feature you are requesting in detail, what problem it
 
 ## Development
 
-**Need:** [.NET 9 SDK](https://dotnet.microsoft.com/download), Jellyfin 10.11.x, Seerr, File Transformation.
+**Need:** [.NET 10 SDK](https://dotnet.microsoft.com/download), Jellyfin 12.0, Seerr, File Transformation.
 
 ```bash
 git clone https://github.com/varunaditya-plus/SeerrFin.git
@@ -27,7 +27,7 @@ cd SeerrFin
 dotnet build SeerrFin.sln -c Release
 ```
 
-Build output: `src/Jellyfin.Plugin.SeerrFin/bin/Release/net9.0/`. Copy the plugin into your Jellyfin plugins folder, restart Jellyfin, hard-refresh the web client, then configure under **Dashboard → SeerrFin**.
+Build output: `src/Jellyfin.Plugin.SeerrFin/bin/Release/net10.0/`. Copy the plugin into your Jellyfin plugins folder, restart Jellyfin, hard-refresh the web client, then configure under **Dashboard → SeerrFin**.
 
 | Path | What |
 | --- | --- |

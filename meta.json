@@ -6,7 +6,7 @@
   "name": "SeerrFin",
   "overview": "This plugin lets you add two extra tabs to your top bar, allowing you to discover new Movies and TV Shows, and easily request them in any quality profile you want.",
   "owner": "varunaditya-plus",
-  "targetAbi": "10.11.0.0",
+  "targetAbi": "12.0.0.0",
   "timestamp": "2026-09-09T19:58:04.0000000Z",
   "version": "1.6.6.3",
   "status": "Active",

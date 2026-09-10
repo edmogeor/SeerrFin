@@ -1,9 +1,65 @@
+using Jellyfin.Plugin.SeerrFin.Configuration;
 using Jellyfin.Plugin.SeerrFin.Model;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Jellyfin.Plugin.SeerrFin.Helpers;
 
 public static class TransformationPatches
 {
+    public static string WebConfig(PatchRequestPayload payload)
+    {
+        string contents = payload.Contents ?? string.Empty;
+        JObject webConfig;
+        try
+        {
+            webConfig = JObject.Parse(contents);
+        }
+        catch (JsonReaderException)
+        {
+            return contents;
+        }
+
+        var config = SeerrFinPlugin.Instance.Configuration;
+        var tabs = SeerrFinTabConfigHelper.Normalize(config.Tabs).ToDictionary(tab => tab.Id);
+        var menuLinks = webConfig["menuLinks"] as JArray ?? new JArray();
+        var tabUrls = tabs.Keys.Select(id => $"#/home?seerrfinTab={id}").ToHashSet(StringComparer.Ordinal);
+
+        // Replace only our own links but keep web client's other settings and links.
+        foreach (JObject link in menuLinks.OfType<JObject>().ToList())
+        {
+            if (tabUrls.Contains(link.Value<string>("url") ?? string.Empty))
+            {
+                link.Remove();
+            }
+        }
+
+        foreach (string key in SeerrFinTabConfigHelper.NormalizeBarOrder(config.TabBarOrder))
+        {
+            if (!key.StartsWith("sf:", StringComparison.Ordinal) || !tabs.TryGetValue(key[3..], out var tab) || !tab.Enabled)
+            {
+                continue;
+            }
+
+            menuLinks.Add(new JObject
+            {
+                ["name"] = tab.Title,
+                ["icon"] = tab.Id switch
+                {
+                    "movies" => "movie",
+                    "tv" => "tv",
+                    "requests" => "download",
+                    _ => "bookmark"
+                },
+                ["url"] = $"#/home?seerrfinTab={tab.Id}"
+            });
+        }
+
+        // Jellyfin 12 renders these in Modern toolbar, overflow menu and drawer.
+        webConfig["menuLinks"] = menuLinks;
+        return webConfig.ToString(Formatting.None);
+    }
+
     public static string IndexHtml(PatchRequestPayload payload)
     {
         string version = SeerrFinPlugin.Instance.GetType().Assembly.GetName().Version?.ToString() ?? "1.0.0.0";
