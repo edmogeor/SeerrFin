@@ -1,14 +1,14 @@
 {
   "category": "General",
-  "changelog": "Added a fix for modern naviation links, as on some platforms, SeerrFin modern navigation links don't load. Made sure it will work with SleekFin",
+  "changelog": "Stop repeated Seerr searches after empty or failed results",
   "description": "The best way to discover and request Movies and TV Shows through Seerr directly in Jellyfin.",
   "guid": "c8e4f2a1-9b3d-4e7f-a6c2-1d5e8f0a3b7c",
   "name": "SeerrFin",
   "overview": "This plugin lets you add two extra tabs to your top bar, allowing you to discover new Movies and TV Shows, and easily request them in any quality profile you want.",
   "owner": "varunaditya-plus",
   "targetAbi": "12.0.0.0",
-  "timestamp": "2026-09-11T15:42:08.0000000Z",
-  "version": "1.7.1.0",
+  "timestamp": "2026-09-11T23:19:07.0000000Z",
+  "version": "1.7.1.1",
   "status": "Active",
   "autoUpdate": true,
   "assemblies": [

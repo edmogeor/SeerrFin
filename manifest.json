@@ -10,6 +10,15 @@
     "repositoryUrl": "https://github.com/varunaditya-plus/SeerrFin",
     "versions": [
       {
+        "version": "1.7.1.1",
+        "changelog": "Stop repeated Seerr searches after empty or failed results",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/varunaditya-plus/SeerrFin/releases/download/1.7.1.1/Jellyfin.Plugin.SeerrFin_12.0.0.zip",
+        "checksum": "B56766B63548E7188BCDDAD831CFD09E",
+        "timestamp": "2026-09-11T23:19:07.0000000Z",
+        "dependencies": []
+      },
+      {
         "version": "1.7.1.0",
         "changelog": "Added a fix for modern naviation links, as on some platforms, SeerrFin modern navigation links don't load. Made sure it will work with SleekFin",
         "targetAbi": "12.0.0.0",
