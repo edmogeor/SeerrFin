@@ -847,6 +847,69 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             }, true);
         },
 
+        ensureModernNavigationLinks: function (config) {
+            const self = this;
+            const tabsById = {};
+            (config.tabs || []).forEach(function (tab) {
+                tabsById[tab.id] = tab;
+            });
+            const desired = (config.tabBarOrder || []).map(function (key) {
+                const id = key.indexOf('sf:') === 0 ? key.slice(3) : '';
+                const tab = tabsById[id];
+                return tab && tab.enabled !== false ? tab : null;
+            }).filter(Boolean);
+            const icons = { movies: 'movie', tv: 'tv', requests: 'download', letterboxd: 'bookmark' };
+
+            document.querySelectorAll('header.MuiAppBar-root .MuiToolbar-root > .MuiStack-root').forEach(function (nav) {
+                const runtimeLinks = Array.from(nav.querySelectorAll('[data-seerrfin-runtime-nav]'));
+                if (nav.querySelector('a[href^="#/home?seerrfinTab="]:not([data-seerrfin-runtime-nav])')) {
+                    runtimeLinks.forEach(function (link) { link.remove(); });
+                    return;
+                }
+
+                const favorite = nav.querySelector('a[href^="#/home?tab=1"]');
+                if (!favorite) {
+                    return;
+                }
+
+                const desiredIds = new Set(desired.map(function (tab) { return tab.id; }));
+                runtimeLinks.forEach(function (link) {
+                    if (!desiredIds.has(link.dataset.seerrfinRuntimeNav)) {
+                        link.remove();
+                    }
+                });
+
+                let previous = favorite;
+                desired.forEach(function (tab) {
+                    let link = nav.querySelector('[data-seerrfin-runtime-nav="' + tab.id + '"]');
+                    if (!link) {
+                        link = favorite.cloneNode(false);
+                        link.removeAttribute('data-sleekfin-current');
+                        link.removeAttribute('data-sleekfin-header-link');
+                        link.dataset.seerrfinRuntimeNav = tab.id;
+                    }
+
+                    const title = self.resolveTabTitle(tab.id, tab.title);
+                    if (link.dataset.seerrfinRuntimeTitle !== title) {
+                        const iconContainer = favorite.firstElementChild.cloneNode(false);
+                        const icon = document.createElement('span');
+                        icon.className = 'material-icons notranslate MuiIcon-root MuiIcon-fontSizeMedium';
+                        icon.setAttribute('aria-hidden', 'true');
+                        icon.textContent = icons[tab.id] || 'bookmark';
+                        iconContainer.appendChild(icon);
+                        link.replaceChildren(iconContainer, title);
+                        link.dataset.seerrfinRuntimeTitle = title;
+                    }
+
+                    link.setAttribute('href', '#/home?seerrfinTab=' + tab.id);
+                    if (previous.nextSibling !== link) {
+                        nav.insertBefore(link, previous.nextSibling);
+                    }
+                    previous = link;
+                });
+            });
+        },
+
         syncModernNavigation: function () {
             const self = this;
             const selected = self.isHomeTabContext() && document.querySelector('.headerTabs .emby-tab-button-active');
@@ -897,12 +960,10 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 return self._tabsEnsuring;
             }
 
-            if (!self.isHomeTabContext()) {
-                self.cleanupSeerrFinHeaderButtons();
-                return Promise.resolve();
-            }
-
             self._tabsEnsuring = self.loadTabConfig().then(function (config) {
+                self.ensureModernNavigationLinks(config);
+                self.syncModernNavigation();
+
                 if (!self.isHomeTabContext()) {
                     self.cleanupSeerrFinHeaderButtons();
                     return;
