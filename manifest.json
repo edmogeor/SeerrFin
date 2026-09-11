@@ -10,6 +10,15 @@
     "repositoryUrl": "https://github.com/varunaditya-plus/SeerrFin",
     "versions": [
       {
+        "version": "1.7.1.0",
+        "changelog": "Added a fix for modern naviation links, as on some platforms, SeerrFin modern navigation links don't load. Made sure it will work with SleekFin",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/varunaditya-plus/SeerrFin/releases/download/1.7.1.0/Jellyfin.Plugin.SeerrFin_12.0.0.zip",
+        "checksum": "70285E587213002C255A354865599D6B",
+        "timestamp": "2026-09-11T15:42:08.0000000Z",
+        "dependencies": []
+      },
+      {
         "version": "1.7.0.0",
         "changelog": "Added Jellyfin 12.0 support, native Modern navigation links, Modern navigation and Legacy tab ordering and deep links, Custom Tabs and Jellyfin Enhanced compatibility, Jellyfin 12 auth, navigation and palette APIs, configuration reloads, and a warning for unsupported Jellyfin versions",
         "targetAbi": "12.0.0.0",
