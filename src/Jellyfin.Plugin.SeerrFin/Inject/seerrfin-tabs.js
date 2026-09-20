@@ -833,8 +833,15 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
         getModernNavId: function (link) {
             if (!link || !link.closest('header.MuiAppBar-root, .MuiDrawer-paper, #user-view-overflow-menu, .customMenuOptions')) return null;
-            const match = /^#\/home\?seerrfinTab=(movies|tv|requests|letterboxd)$/.exec(link.getAttribute('href') || '');
-            return match ? match[1] : null;
+            const match = /^#\/home(?:\.html)?\?(.+)$/.exec(link.getAttribute('href') || '');
+            const id = match && new URLSearchParams(match[1]).get('seerrfinTab');
+            return id && this.TAB_DEFS[id] ? id : null;
+        },
+
+        getActiveModernNavId: function () {
+            const route = new URLSearchParams(window.location.hash.split('?')[1] || '');
+            const id = route.get('seerrfinTab');
+            return id && this.TAB_DEFS[id] ? id : null;
         },
 
         bindModernNavigation: function () {
@@ -915,8 +922,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
         syncModernNavigation: function () {
             const self = this;
-            const selected = self.isHomeTabContext() && document.querySelector('.headerTabs .emby-tab-button-active');
-            const activeId = selected && selected.getAttribute('data-seerrfin-tab');
+            const activeId = self.getActiveModernNavId();
             document.querySelectorAll('header.MuiAppBar-root a[href], .MuiDrawer-paper a[href], #user-view-overflow-menu a[href], .customMenuOptions a[href]').forEach(function (link) {
                 const id = self.getModernNavId(link);
                 if (!id) {
@@ -924,6 +930,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 }
                 link.dataset.seerrfinMenuNav = id;
                 const active = activeId === id;
+                link.classList.toggle('MuiButton-textPrimary', active);
+                link.classList.toggle('MuiButton-colorPrimary', active);
+                link.classList.toggle('MuiButton-colorInherit', !active);
                 if (active && link.getAttribute('aria-current') !== 'page') {
                     link.setAttribute('aria-current', 'page');
                 } else if (!active && link.hasAttribute('aria-current')) {
