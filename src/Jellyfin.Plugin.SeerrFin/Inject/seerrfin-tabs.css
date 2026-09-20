@@ -407,9 +407,11 @@
 /* ElegantFin fixes */
 html.seerrfin-elegantfin .seerrfin-movies-sections .seerrfin-discover-card,
 html.seerrfin-elegantfin .seerrfin-tv-sections .seerrfin-discover-card,
+html.seerrfin-elegantfin .seerrfin-discover-sections .seerrfin-discover-card,
 html.seerrfin-elegantfin .seerrfin-search-section .seerrfin-discover-card,
 html.seerrfin-elegantfin .seerrfin-movies-sections .seerrfin-box-card,
 html.seerrfin-elegantfin .seerrfin-tv-sections .seerrfin-box-card,
+html.seerrfin-elegantfin .seerrfin-discover-sections .seerrfin-box-card,
 html.seerrfin-elegantfin .seerrfin-grid-view .seerrfin-discover-card,
 html.seerrfin-elegantfin [data-seerrfin-skeleton-card] {
     padding: 0 !important;
@@ -422,6 +424,7 @@ html.seerrfin-elegantfin .seerrfin-discover-card--backdrop {
 
 html.seerrfin-elegantfin .seerrfin-poster-section .seerrfin-discover-card:not(.seerrfin-discover-card--backdrop),
 html.seerrfin-elegantfin .seerrfin-grid-view .seerrfin-discover-card:not(.seerrfin-discover-card--backdrop),
+html.seerrfin-elegantfin .seerrfin-discover-sections .seerrfin-discover-card:not(.seerrfin-discover-card--backdrop),
 html.seerrfin-elegantfin .seerrfin-search-section .seerrfin-discover-card:not(.seerrfin-discover-card--backdrop) {
     width: var(--seerrfin-discover-portrait-width) !important;
 }

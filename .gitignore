@@ -4,6 +4,7 @@ Debug/
 Release/
 artifacts/
 publish/
+/.publish*/
 dist/
 
 .vs/

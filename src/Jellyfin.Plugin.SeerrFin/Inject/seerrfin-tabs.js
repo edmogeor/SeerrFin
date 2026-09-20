@@ -188,7 +188,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                     id: tab.id,
                     enabled: Object.prototype.hasOwnProperty.call(enabledById, tab.id)
                         ? enabledById[tab.id]
-                        : true,
+                        : tab.enabled,
                     title: Object.prototype.hasOwnProperty.call(titleById, tab.id)
                         ? titleById[tab.id]
                         : self.resolveTabTitle(tab.id)
@@ -585,11 +585,12 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             const self = this;
             const tabsById = {};
             const route = new URLSearchParams(window.location.hash.split('?')[1] || '');
-            const openRequestsFromDiscover = route.get('seerrfinTab') === 'requests' &&
-                route.get('seerrfinFrom') === 'discover';
             (config.tabs || []).forEach(function (tab) {
                 tabsById[tab.id] = tab;
             });
+            const discoverTab = tabsById.discover;
+            const openRequestsFromDiscover = !!discoverTab && discoverTab.enabled !== false &&
+                route.get('seerrfinTab') === 'requests' && route.get('seerrfinFrom') === 'discover';
 
             return (config.tabBarOrder || []).map(function (key) {
                 if (key === 'jf:home') {
