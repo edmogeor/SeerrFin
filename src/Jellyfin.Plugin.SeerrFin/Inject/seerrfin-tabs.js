@@ -584,6 +584,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         buildDesiredBarSlots: function (config) {
             const self = this;
             const tabsById = {};
+            const route = new URLSearchParams(window.location.hash.split('?')[1] || '');
+            const openRequestsFromDiscover = route.get('seerrfinTab') === 'requests' &&
+                route.get('seerrfinFrom') === 'discover';
             (config.tabs || []).forEach(function (tab) {
                 tabsById[tab.id] = tab;
             });
@@ -598,7 +601,10 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 if (key.indexOf('sf:') === 0) {
                     const id = key.slice(3);
                     const tab = tabsById[id];
-                    if (!tab || tab.enabled === false || !self.TAB_DEFS[id]) {
+                    // Keep Requests out of the navigation when disabled, but mount its panel
+                    // for the Discover flow that explicitly navigates to it.
+                    const allowDisabledRequests = id === 'requests' && openRequestsFromDiscover;
+                    if (!tab || (tab.enabled === false && !allowDisabledRequests) || !self.TAB_DEFS[id]) {
                         return null;
                     }
                     return { key: key, type: 'seerrfin', id: id, title: tab.title };
