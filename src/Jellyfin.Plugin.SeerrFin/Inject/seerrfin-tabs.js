@@ -1343,6 +1343,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
             container.innerHTML = `
                 <div class="verticalSection seerrfin-discover-panel">
+                    <div class="sectionTitleContainer sectionTitleContainer-cards padded-left padded-right">
+                        <h2 class="sectionTitle sectionTitle-cards">Discover</h2>
+                    </div>
                     <div class="seerrfin-discover-filters padded-left padded-right" role="tablist" aria-label="Discover media type">
                         <button type="button" class="seerrfin-discover-filter is-active" data-discover-type="movies" role="tab" aria-selected="true">Movies</button>
                         <button type="button" class="seerrfin-discover-filter" data-discover-type="tv" role="tab" aria-selected="false">Shows</button>
