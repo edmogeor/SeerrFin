@@ -56,6 +56,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         TAB_DEFS: {
             movies: { sectionClass: 'seerrfin-movies-sections', defaultTitle: 'Movies' },
             tv: { sectionClass: 'seerrfin-tv-sections', defaultTitle: 'TV Shows' },
+            discover: { sectionClass: 'seerrfin-discover-sections', defaultTitle: 'Discover' },
             requests: { sectionClass: 'seerrfin-requests-sections', defaultTitle: 'Requests' },
             letterboxd: { sectionClass: 'seerrfin-letterboxd-sections', defaultTitle: 'Letterboxd' }
         },
@@ -148,13 +149,14 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 self._renderPending = false;
                 self.renderIfContainerVisible('movies');
                 self.renderIfContainerVisible('tv');
+                self.renderIfContainerVisible('discover');
             });
         },
 
         getDefaultTabConfig: function () {
             const self = this;
             return Object.keys(this.TAB_DEFS).map(function (id) {
-                return { id: id, enabled: true, title: self.TAB_DEFS[id].defaultTitle };
+                return { id: id, enabled: id !== 'discover', title: self.TAB_DEFS[id].defaultTitle };
             });
         },
 
@@ -1129,7 +1131,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         },
 
         renderIfContainerVisible: function (type) {
-            const selector = type === 'movies' ? '.seerrfin-movies-sections' : '.seerrfin-tv-sections';
+            const selector = '.seerrfin-' + type + '-sections';
             const container = this.findActiveContainer(selector);
             if (!container) {
                 return;
@@ -1170,14 +1172,17 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
         loadTab: function (type, container) {
             if (!container) {
-                container = this.findActiveContainer(
-                    type === 'movies' ? '.seerrfin-movies-sections' : '.seerrfin-tv-sections'
-                );
+                container = this.findActiveContainer('.seerrfin-' + type + '-sections');
             }
             if (!container || !this.isContainerVisible(container) || this.isGridViewOpen(container)) {
                 if (container && !this.isContainerVisible(container)) {
                     log.info(type + ' tab skip load: container not visible');
                 }
+                return;
+            }
+
+            if (type === 'discover') {
+                this.loadDiscoverTab(container);
                 return;
             }
 
@@ -1329,6 +1334,41 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 container.dataset.seerrfinLoaded = 'true';
                 container.innerHTML = `<div class="seerrfin-empty-row">Failed to load discovery rows. Check Seerr settings and that your Jellyfin user is linked in Seerr.</div>`;
             });
+        },
+
+        loadDiscoverTab: function (container) {
+            if (container.querySelector('.seerrfin-discover-panel')) {
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="verticalSection seerrfin-discover-panel">
+                    <div class="seerrfin-discover-filters padded-left padded-right" role="tablist" aria-label="Discover media type">
+                        <button type="button" class="seerrfin-discover-filter is-active" data-discover-type="movies" role="tab" aria-selected="true">Movies</button>
+                        <button type="button" class="seerrfin-discover-filter" data-discover-type="tv" role="tab" aria-selected="false">Shows</button>
+                    </div>
+                </div>
+                <div class="seerrfin-discover-body"></div>`;
+
+            const self = this;
+            const body = container.querySelector('.seerrfin-discover-body');
+            container.addEventListener('click', function (event) {
+                const button = event.target.closest('[data-discover-type]');
+                if (!button || !container.contains(button) || button.classList.contains('is-active')) {
+                    return;
+                }
+
+                container.querySelectorAll('[data-discover-type]').forEach(function (tab) {
+                    const active = tab === button;
+                    tab.classList.toggle('is-active', active);
+                    tab.setAttribute('aria-selected', String(active));
+                });
+                body.innerHTML = '';
+                delete body.dataset.seerrfinLoaded;
+                delete body.dataset.seerrfinLoading;
+                self.loadTab(button.dataset.discoverType, body);
+            });
+            this.loadTab('movies', body);
         },
 
         fetchDiscover: function (path, query) {
@@ -1713,7 +1753,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             this._tabConfig = null;
             this._tabConfigPromise = null;
             this.clearBackdropCaches();
-            document.querySelectorAll('.seerrfin-movies-sections, .seerrfin-tv-sections, .seerrfin-search-section').forEach(function (section) {
+            document.querySelectorAll('.seerrfin-movies-sections, .seerrfin-tv-sections, .seerrfin-discover-sections, .seerrfin-search-section').forEach(function (section) {
                 delete section.dataset.seerrfinDisplaySettings;
             });
             Promise.all([pendingSettings, pendingTabConfig]).then(function () {
@@ -2813,7 +2853,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             // Capturing runs before card navigation handlers
             document.addEventListener('click', function (e) {
                 const btn = e.target.closest('.discover-requestbutton');
-                if (!btn || !btn.closest('.seerrfin-movies-sections, .seerrfin-tv-sections, [data-seerrfin-grid-view], .seerrfin-search-section')) {
+                if (!btn || !btn.closest('.seerrfin-movies-sections, .seerrfin-tv-sections, .seerrfin-discover-sections, [data-seerrfin-grid-view], .seerrfin-search-section')) {
                     return;
                 }
 
@@ -2838,7 +2878,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
                 const card = e.target.closest('.seerrfin-discover-card, [data-seerrfin-native-card="true"]');
                 if (!card || card.classList.contains('seerrfin-discover-card--static') ||
-                    !card.closest('.seerrfin-movies-sections, .seerrfin-tv-sections, [data-seerrfin-grid-view], .seerrfin-search-section')) {
+                    !card.closest('.seerrfin-movies-sections, .seerrfin-tv-sections, .seerrfin-discover-sections, [data-seerrfin-grid-view], .seerrfin-search-section')) {
                     return;
                 }
 
@@ -2871,7 +2911,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             document.addEventListener('click', function (e) {
                 const btn = e.target.closest('.seerrfin-view-more');
                 if (btn) {
-                    const container = btn.closest('.seerrfin-movies-sections, .seerrfin-tv-sections');
+                    const container = btn.closest('.seerrfin-movies-sections, .seerrfin-tv-sections, .seerrfin-discover-sections');
                     if (!container) {
                         return;
                     }
@@ -2892,7 +2932,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                     return;
                 }
 
-                const boxContainer = boxCard.closest('.seerrfin-movies-sections, .seerrfin-tv-sections');
+                const boxContainer = boxCard.closest('.seerrfin-movies-sections, .seerrfin-tv-sections, .seerrfin-discover-sections');
                 if (!boxContainer) {
                     return;
                 }

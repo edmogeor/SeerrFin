@@ -10,10 +10,39 @@ a[data-seerrfin-menu-nav]:focus-visible {
 
 .seerrfin-movies-sections,
 .seerrfin-tv-sections,
+.seerrfin-discover-sections,
 .seerrfin-requests-sections,
 .seerrfin-search-section {
     --seerrfin-discover-backdrop-width: 20em;
     --seerrfin-discover-portrait-width: 13.333em;
+}
+
+.seerrfin-discover-filters {
+    display: flex;
+    gap: 1.25em;
+    margin-bottom: 1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0.65em;
+}
+
+.seerrfin-discover-filter {
+    padding: 0.35em 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--secondaryTextColor, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    font: inherit;
+}
+
+.seerrfin-discover-filter:hover,
+.seerrfin-discover-filter:focus-visible,
+.seerrfin-discover-filter.is-active {
+    color: var(--primaryTextColor, #fff);
+}
+
+.seerrfin-discover-filter.is-active {
+    border-bottom-color: var(--accentTextColor, var(--buttonBackground, #00a4dc));
 }
 
 .seerrfin-box-card {
