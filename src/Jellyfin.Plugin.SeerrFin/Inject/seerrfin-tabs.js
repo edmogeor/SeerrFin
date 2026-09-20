@@ -835,7 +835,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
         getModernNavId: function (link) {
             if (!link || !link.closest('header.MuiAppBar-root, .MuiDrawer-paper, #user-view-overflow-menu, .customMenuOptions')) return null;
-            const match = /^#\/home\?seerrfinTab=(movies|tv|requests|letterboxd)$/.exec(link.getAttribute('href') || '');
+            const match = /^#\/home\?seerrfinTab=(movies|tv|discover|requests|letterboxd)$/.exec(link.getAttribute('href') || '');
             return match ? match[1] : null;
         },
 
@@ -863,7 +863,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 const tab = tabsById[id];
                 return tab && tab.enabled !== false ? tab : null;
             }).filter(Boolean);
-            const icons = { movies: 'movie', tv: 'tv', requests: 'download', letterboxd: 'bookmark' };
+            const icons = { movies: 'movie', tv: 'tv', discover: 'explore', requests: 'download', letterboxd: 'bookmark' };
 
             document.querySelectorAll('header.MuiAppBar-root .MuiToolbar-root > .MuiStack-root').forEach(function (nav) {
                 const runtimeLinks = Array.from(nav.querySelectorAll('[data-seerrfin-runtime-nav]'));
