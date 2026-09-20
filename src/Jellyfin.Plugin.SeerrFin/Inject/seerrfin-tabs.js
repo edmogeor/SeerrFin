@@ -1345,6 +1345,10 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 <div class="verticalSection seerrfin-discover-panel">
                     <div class="sectionTitleContainer sectionTitleContainer-cards padded-left padded-right">
                         <h2 class="sectionTitle sectionTitle-cards">Discover</h2>
+                        <button type="button" class="seerrfin-discover-requests" aria-label="View requests">
+                            <span class="material-icons" aria-hidden="true">download</span>
+                            <span>Requests</span>
+                        </button>
                     </div>
                     <div class="seerrfin-discover-filters padded-left padded-right" role="tablist" aria-label="Discover media type">
                         <button type="button" class="seerrfin-discover-filter is-active" data-discover-type="movies" role="tab" aria-selected="true">Movies</button>
@@ -1356,6 +1360,11 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             const self = this;
             const body = container.querySelector('.seerrfin-discover-body');
             container.addEventListener('click', function (event) {
+                if (event.target.closest('.seerrfin-discover-requests')) {
+                    window.location.hash = '#/home?seerrfinTab=requests&seerrfinFrom=discover';
+                    return;
+                }
+
                 const button = event.target.closest('[data-discover-type]');
                 if (!button || !container.contains(button) || button.classList.contains('is-active')) {
                     return;
