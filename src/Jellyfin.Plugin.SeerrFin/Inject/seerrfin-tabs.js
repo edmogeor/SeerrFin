@@ -839,10 +839,6 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         },
 
         getActiveModernNavId: function () {
-            if (!this.isHomeTabContext()) {
-                return null;
-            }
-
             const route = new URLSearchParams(window.location.hash.split('?')[1] || '');
             const id = route.get('seerrfinTab');
             return id && this.TAB_DEFS[id] ? id : null;
@@ -934,6 +930,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 }
                 link.dataset.seerrfinMenuNav = id;
                 const active = activeId === id;
+                link.classList.toggle('MuiButton-textPrimary', active);
+                link.classList.toggle('MuiButton-colorPrimary', active);
+                link.classList.toggle('MuiButton-colorInherit', !active);
                 if (active && link.getAttribute('aria-current') !== 'page') {
                     link.setAttribute('aria-current', 'page');
                 } else if (!active && link.hasAttribute('aria-current')) {
