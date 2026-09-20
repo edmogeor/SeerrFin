@@ -222,20 +222,15 @@ a[data-seerrfin-menu-nav]:focus-visible {
 }
 
 .seerrfin-discover-requests {
-    margin-left: auto;
+    margin-left: auto !important;
     display: inline-flex;
     align-items: center;
     gap: 0.4em;
-    border: 0;
-    background: transparent;
-    color: var(--secondaryTextColor, rgba(255, 255, 255, 0.65));
-    cursor: pointer;
-    font: inherit;
-}
-
-.seerrfin-discover-requests:hover,
-.seerrfin-discover-requests:focus-visible {
-    color: var(--primaryTextColor, #fff);
+    flex: 0 0 auto;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0.35em 0.65em !important;
+    line-height: 1.2 !important;
 }
 
 .seerrfin-search-section {
@@ -458,6 +453,15 @@ html.seerrfin-elegantfin .seerrfin-tv-sections .sectionTitleContainer-cards {
 
 html.seerrfin-elegantfin .seerrfin-movies-sections .sectionTitleContainer-cards .sectionTitle-cards,
 html.seerrfin-elegantfin .seerrfin-tv-sections .sectionTitleContainer-cards .sectionTitle-cards {
+    margin: 0 !important;
+    padding-top: 0 !important;
+}
+
+html.seerrfin-elegantfin .seerrfin-discover-panel .sectionTitleContainer-cards {
+    margin: 0 !important;
+}
+
+html.seerrfin-elegantfin .seerrfin-discover-panel .sectionTitleContainer-cards .sectionTitle-cards {
     margin: 0 !important;
     padding-top: 0 !important;
 }

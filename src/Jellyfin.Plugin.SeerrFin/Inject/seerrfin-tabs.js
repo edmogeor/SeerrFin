@@ -1345,9 +1345,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 <div class="verticalSection seerrfin-discover-panel">
                     <div class="sectionTitleContainer sectionTitleContainer-cards padded-left padded-right">
                         <h2 class="sectionTitle sectionTitle-cards">Discover</h2>
-                        <button type="button" class="seerrfin-discover-requests" aria-label="View requests">
+                        <button type="button" class="seerrfin-discover-requests emby-tab-button emby-button" aria-label="View requests">
                             <span class="material-icons" aria-hidden="true">download</span>
-                            <span>Requests</span>
+                            <span class="emby-button-foreground">Requests</span>
                         </button>
                     </div>
                     <div class="seerrfin-discover-filters padded-left padded-right" role="tablist" aria-label="Discover media type">
