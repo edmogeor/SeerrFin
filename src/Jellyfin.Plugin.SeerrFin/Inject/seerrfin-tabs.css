@@ -35,6 +35,10 @@
     border-bottom-color: var(--accentTextColor, var(--buttonBackground, #00a4dc));
 }
 
+.seerrfin-discover-body[hidden] {
+    display: none;
+}
+
 .seerrfin-box-card {
     cursor: pointer;
 }
