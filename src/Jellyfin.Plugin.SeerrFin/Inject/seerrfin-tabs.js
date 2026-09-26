@@ -932,6 +932,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 }
                 link.dataset.seerrfinMenuNav = id;
                 const active = activeId === id;
+                link.classList.toggle('Mui-selected', active);
                 if (active && link.getAttribute('aria-current') !== 'page') {
                     link.setAttribute('aria-current', 'page');
                 } else if (!active && link.hasAttribute('aria-current')) {
