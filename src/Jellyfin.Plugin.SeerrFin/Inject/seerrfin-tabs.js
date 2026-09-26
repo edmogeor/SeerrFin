@@ -939,9 +939,6 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 }
                 link.dataset.seerrfinMenuNav = id;
                 const active = activeId === id;
-                link.classList.toggle('MuiButton-textPrimary', active);
-                link.classList.toggle('MuiButton-colorPrimary', active);
-                link.classList.toggle('MuiButton-colorInherit', !active);
                 if (active && link.getAttribute('aria-current') !== 'page') {
                     link.setAttribute('aria-current', 'page');
                 } else if (!active && link.hasAttribute('aria-current')) {
