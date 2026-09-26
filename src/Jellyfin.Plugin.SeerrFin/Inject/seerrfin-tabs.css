@@ -1,14 +1,3 @@
-/* Jellyfin 12 now gives us the header, More menu and drawer links */
-a[data-seerrfin-menu-nav][aria-current="page"] {
-    color: var(--jf-palette-primary-main);
-}
-
-a[data-seerrfin-menu-nav][aria-current="page"] .MuiListItemIcon-root,
-a[data-seerrfin-menu-nav][aria-current="page"] .MuiListItemText-root,
-a[data-seerrfin-menu-nav][aria-current="page"] .MuiTypography-root {
-    color: inherit;
-}
-
 a[data-seerrfin-menu-nav]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: -2px;
