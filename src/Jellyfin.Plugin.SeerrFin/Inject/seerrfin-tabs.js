@@ -409,6 +409,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 }
                 // Legacy tab clicks do not update the route, so keep a home deep link in sync so a later header refresh cant restore the tab just left
                 window.location.hash = id ? '#/home?seerrfinTab=' + id : (index === 0 ? '#/home' : '#/home?tab=' + index);
+                self.syncModernNavigation();
             }, true);
 
             tabs.addEventListener('beforetabchange', function (event) {
@@ -862,6 +863,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 if (!self.getModernNavId(link)) return;
                 event.preventDefault();
                 window.location.hash = link.getAttribute('href');
+                self.syncModernNavigation();
                 self.ensureNativeTabs().then(function () { self.scheduleRender(); });
             }, true);
         },
