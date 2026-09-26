@@ -842,8 +842,9 @@ if (typeof window.seerrFinPlugin === 'undefined') {
 
         getModernNavId: function (link) {
             if (!link || !link.closest('header.MuiAppBar-root, .MuiDrawer-paper, #user-view-overflow-menu, .customMenuOptions')) return null;
-            const match = /^#\/home\?seerrfinTab=(movies|tv|discover|requests|letterboxd)$/.exec(link.getAttribute('href') || '');
-            return match ? match[1] : null;
+            const match = /^#\/home(?:\.html)?\?(.+)$/.exec(link.getAttribute('href') || '');
+            const id = match && new URLSearchParams(match[1]).get('seerrfinTab');
+            return id && this.TAB_DEFS[id] ? id : null;
         },
 
         bindModernNavigation: function () {
@@ -1119,24 +1120,6 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             return false;
         },
 
-        cancelContainerLoad: function (container) {
-            if (!container) {
-                return;
-            }
-
-            container.dataset.seerrfinLoadId = 'cancelled-' + Date.now() + '-' + Math.random().toString(16).slice(2);
-            container.dataset.seerrfinLoading = 'false';
-            if (!this.isContainerPopulated(container)) {
-                delete container.dataset.seerrfinLoaded;
-            }
-
-            Array.from(container.childNodes).forEach(function (node) {
-                if (node.nodeType === Node.COMMENT_NODE && /seerrfin-(row|carousel)-slot/.test(node.nodeValue || '')) {
-                    node.remove();
-                }
-            });
-        },
-
         renderIfContainerVisible: function (type) {
             const selector = '.seerrfin-' + type + '-sections';
             const container = this.findActiveContainer(selector);
@@ -1155,7 +1138,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 if (container.dataset.seerrfinDisplaySettings !== settingsKey) {
                     log.info(type + ' tab display settings changed, clearing container');
                     container.dataset.seerrfinDisplaySettings = settingsKey;
-                    if (self.isContainerPopulated(container)) {
+                    if (self.isContainerPopulated(container) || (type === 'discover' && container.querySelector('.seerrfin-discover-panel'))) {
                         container.innerHTML = '';
                         delete container.dataset.seerrfinLoaded;
                         delete container.dataset.seerrfinLoading;
@@ -1219,7 +1202,8 @@ if (typeof window.seerrFinPlugin === 'undefined') {
             };
 
             const isStale = function () {
-                return container.dataset.seerrfinLoadId !== loadId || !self.isContainerVisible(container) || self.isGridViewOpen(container);
+                const visibleContainer = container.closest('.seerrfin-discover-sections') || container;
+                return container.dataset.seerrfinLoadId !== loadId || !self.isContainerVisible(visibleContainer);
             };
 
             const browseTitle = mediaType === 'movie' ? 'Browse by studio' : 'Browse by network';
@@ -1348,6 +1332,7 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                 return;
             }
 
+            const panelId = 'seerrfin-discover-' + (this._discoverPanelId = (this._discoverPanelId || 0) + 1);
             container.innerHTML = `
                 <div class="verticalSection seerrfin-discover-panel">
                     <div class="sectionTitleContainer sectionTitleContainer-cards padded-left padded-right">
@@ -1358,36 +1343,60 @@ if (typeof window.seerrFinPlugin === 'undefined') {
                         </button>
                     </div>
                     <div class="seerrfin-discover-filters padded-left padded-right" role="tablist" aria-label="Discover media type">
-                        <button type="button" class="seerrfin-discover-filter is-active" data-discover-type="movies" role="tab" aria-selected="true">Movies</button>
-                        <button type="button" class="seerrfin-discover-filter" data-discover-type="tv" role="tab" aria-selected="false">Shows</button>
+                        <button type="button" id="${panelId}-movies-tab" class="seerrfin-discover-filter is-active" data-discover-type="movies" role="tab" aria-controls="${panelId}-movies" aria-selected="true" tabindex="0">Movies</button>
+                        <button type="button" id="${panelId}-tv-tab" class="seerrfin-discover-filter" data-discover-type="tv" role="tab" aria-controls="${panelId}-tv" aria-selected="false" tabindex="-1">Shows</button>
                     </div>
                 </div>
-                <div class="seerrfin-discover-body"></div>`;
+                <div id="${panelId}-movies" class="seerrfin-discover-body" data-discover-panel="movies" role="tabpanel" aria-labelledby="${panelId}-movies-tab" tabindex="0"></div>
+                <div id="${panelId}-tv" class="seerrfin-discover-body" data-discover-panel="tv" role="tabpanel" aria-labelledby="${panelId}-tv-tab" tabindex="0" hidden></div>`;
 
             const self = this;
-            const body = container.querySelector('.seerrfin-discover-body');
-            container.addEventListener('click', function (event) {
-                if (event.target.closest('.seerrfin-discover-requests')) {
-                    window.location.hash = '#/home?seerrfinTab=requests&seerrfinFrom=discover';
-                    return;
-                }
-
-                const button = event.target.closest('[data-discover-type]');
-                if (!button || !container.contains(button) || button.classList.contains('is-active')) {
-                    return;
-                }
-
+            function selectTab(button) {
                 container.querySelectorAll('[data-discover-type]').forEach(function (tab) {
                     const active = tab === button;
                     tab.classList.toggle('is-active', active);
                     tab.setAttribute('aria-selected', String(active));
+                    tab.tabIndex = active ? 0 : -1;
                 });
-                body.innerHTML = '';
-                delete body.dataset.seerrfinLoaded;
-                delete body.dataset.seerrfinLoading;
-                self.loadTab(button.dataset.discoverType, body);
-            });
-            this.loadTab('movies', body);
+                container.querySelectorAll('[data-discover-panel]').forEach(function (panel) {
+                    panel.hidden = panel.dataset.discoverPanel !== button.dataset.discoverType;
+                });
+                const body = container.querySelector('[data-discover-panel="' + button.dataset.discoverType + '"]');
+                if (body && !self.isContainerLoading(body) && body.dataset.seerrfinLoaded !== 'true') {
+                    self.loadTab(button.dataset.discoverType, body);
+                }
+            }
+
+            if (container.dataset.seerrfinDiscoverBound !== 'true') {
+                container.dataset.seerrfinDiscoverBound = 'true';
+                container.addEventListener('click', function (event) {
+                    if (event.target.closest('.seerrfin-discover-requests')) {
+                        window.location.hash = '#/home?seerrfinTab=requests&seerrfinFrom=discover';
+                        return;
+                    }
+                    const button = event.target.closest('[data-discover-type]');
+                    if (button && container.contains(button)) {
+                        selectTab(button);
+                    }
+                });
+                container.addEventListener('keydown', function (event) {
+                    const button = event.target.closest('[data-discover-type]');
+                    if (!button || !container.contains(button)) {
+                        return;
+                    }
+                    const tabs = Array.from(container.querySelectorAll('[data-discover-type]'));
+                    const index = tabs.indexOf(button);
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+                        : event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                            : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : -1;
+                    if (next !== -1) {
+                        event.preventDefault();
+                        selectTab(tabs[next]);
+                        tabs[next].focus();
+                    }
+                });
+            }
+            this.loadTab('movies', container.querySelector('[data-discover-panel="movies"]'));
         },
 
         fetchDiscover: function (path, query) {
@@ -3098,7 +3107,6 @@ if (typeof window.seerrFinPlugin === 'undefined') {
         openGridView: function (container, title, path) {
             const self = this;
             self.clearJellyfinSelection();
-            self.cancelContainerLoad(container);
 
             Array.from(container.children).forEach(function (child) {
                 if (!child.hasAttribute('data-seerrfin-grid-view')) {
