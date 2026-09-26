@@ -1,3 +1,7 @@
+header.MuiAppBar-root a[data-seerrfin-menu-nav][aria-current="page"] {
+    color: var(--jf-palette-primary-main);
+}
+
 a[data-seerrfin-menu-nav]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: -2px;
